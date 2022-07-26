@@ -55,7 +55,6 @@ public class NetworkStatisticData {
         }
         return lstRecords;
     }
-
     public static List<UdpRecordPid> GetAllUdpConnections ( ) {
         int AF_INET = 2;    // IP_v4 
         int buffSize = 0;
