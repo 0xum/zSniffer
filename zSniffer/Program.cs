@@ -20,55 +20,64 @@ namespace zSniffer
             [Option ( 'm', "method", Required = true, HelpText = "Which protocol will be used. (TCP/UDP/ALL)" )]
             public string TargetMethod { get; set; }
         }
+
         static void Main ( string [ ] args )
         {
             Parser.Default.ParseArguments<Options> ( args )
-            .WithParsed ( o =>
-            {
-                var processes = Process.GetProcessesByName ( o.TargetName ).Length;
+                   .WithParsed<Options> ( o =>
+                   {
+                       var processes = Process.GetProcessesByName ( o.TargetName ).Length;
 
-                if ( processes == 0 )
-                {
-                    Console.WriteLine ( "Cannot find process.", Color.Red );
-                    Environment.Exit ( 0 );
-                }
-                else
-                {
-                    switch ( o.TargetMethod.ToLower ( ) )
-                    {
-                        case "tcp":
-                            SniffTcp ( o.TargetName );
-                            break;
+                       if ( processes == 0 )
+                       {
+                           Console.WriteLine ( "Cannot find process.", Color.Red );
+                           Environment.Exit ( 0 );
+                       }
+                       else
+                       {
+                           switch ( o.TargetMethod.ToLower ( ) )
+                           {
+                               case "tcp":
+                                   SniffTcp ( o.TargetName );
+                                   break;
 
-                        case "udp":
-                            SniffUdp ( o.TargetName );
-                            break;
+                               case "udp":
+                                   SniffUdp ( o.TargetName );
+                                   break;
 
-                        default: Console.WriteLine ( "Invalid protocol, use TCP or UDP.", Color.Red ); break;
-                    }
-                }
-            } );
+                               case "all":
+                                   SniffAll ( o.TargetName );
+                                   break;
+
+                               default: Console.WriteLine ( "Invalid protocol, use TCP, UDP or ALL.", Color.Red ); break;
+                           }
+                       }
+                   } );
         }
         static void SniffTcp ( string targetProcess )
         {
             while ( true )
             {
-                var process = Process.GetProcessesByName ( targetProcess ).FirstOrDefault();
+                var processes = Process.GetProcessesByName ( targetProcess );
 
-                if ( process is null || process.HasExited )
+                foreach ( var process in processes )
                 {
-                    Console.WriteLine ( "Process exited.", Color.Red );
-                    break;
-                }
-                else
-                {
-                    var connections = NetworkStatisticData.GetAllTcpConnections ( )
+
+                    if ( process is null || process.HasExited )
+                    {
+                        Console.WriteLine ( "Process exited.", Color.Red );
+                        break;
+                    }
+                    else
+                    {
+                        var connections = NetworkStatisticData.GetAllTcpConnections ( )
                         .Where ( x => x.ProcessName == targetProcess );
 
-                    foreach ( var x in connections )
-                    {
-                        LogConnection ( process, x.LocalAddress.ToString ( ), x.LocalPort.ToString ( ), "UDP" );
-                        Thread.Sleep ( 50 );
+                        foreach ( var x in connections )
+                        {
+                            LogConnection ( process, x.RemoteAddress.ToString ( ), x.RemotePort.ToString ( ), "TCP" );
+                            Thread.Sleep ( 50 );
+                        }
                     }
                 }
             }
@@ -77,6 +86,35 @@ namespace zSniffer
         {
             while ( true )
             {
+                var processes = Process.GetProcessesByName ( targetProcess );
+
+                foreach ( var process in processes )
+                {
+                    if ( process is null || process.HasExited )
+                    {
+                        Console.WriteLine ( "Process exited.", Color.Red );
+                        break;
+                    }
+                    else
+                    {
+                        var connections = NetworkStatisticData.GetAllUdpConnections ( )
+                        .Where ( x => x.ProcessName == targetProcess );
+
+                        foreach ( var x in connections )
+                        {
+                            LogConnection ( process, x.LocalAddress.ToString ( ), x.LocalPort.ToString ( ), "UDP" );
+                            Thread.Sleep ( 50 );
+                        }
+
+                    }
+                }
+            }
+        }
+
+        static void SniffAll ( string targetProcess )
+        {
+            while ( true )
+            {
                 var process = Process.GetProcessesByName ( targetProcess ).FirstOrDefault();
 
                 if ( process is null || process.HasExited )
@@ -86,17 +124,27 @@ namespace zSniffer
                 }
                 else
                 {
-                    var connections = NetworkStatisticData.GetAllUdpConnections ( )
+                    var udpConnections = NetworkStatisticData.GetAllUdpConnections ( )
                         .Where ( x => x.ProcessName == targetProcess );
 
-                    foreach ( var x in connections )
+                    foreach ( var x in udpConnections )
                     {
                         LogConnection ( process, x.LocalAddress.ToString ( ), x.LocalPort.ToString ( ), "UDP" );
+                        Thread.Sleep ( 50 );
+                    }
+
+                    var tcpConnections = NetworkStatisticData.GetAllTcpConnections ( )
+                        .Where ( x => x.ProcessName == targetProcess );
+
+                    foreach ( var x in tcpConnections )
+                    {
+                        LogConnection ( process, x.RemoteAddress.ToString ( ), x.RemotePort.ToString ( ), "TCP" );
                         Thread.Sleep ( 50 );
                     }
                 }
             }
         }
+
         static void LogConnection ( Process p, string address, string port, string protocol )
         {
             Console.Title = $"[ zSniffer ] [ {p.ProcessName}:{p.Id} ]  [ {protocol} ] [ {address}:{port} ]";
@@ -127,5 +175,6 @@ namespace zSniffer
 
             Console.Write ( "\n" );
         }
+
     }
 }
