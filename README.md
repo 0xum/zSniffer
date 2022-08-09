@@ -2,6 +2,8 @@
 
 A very simple sniffer that could capture TCP and UDP connections.
 
-Put into C:\Windows\ to work better.
+Put into C:\Windows\ and read the usage.
 
-I recommend you to run it as administrator.
+# Orignal Source Code
+
+[Original Source Code](https://coderbag.com/programming-c/building-a-network-sniffer-in-net)
